@@ -25,6 +25,11 @@ generation_defaults:
   seed: 0
   speed_factor: 1.0
   language: en
+# Named generation presets, selectable via the OpenAI `model` field.
+# Any key omitted in a preset falls back to generation_defaults.
+presets:
+  moneypenny: {temperature: 0.8, exaggeration: 0.4, cfg_weight: 0.4, seed: 670}
+  samantha: {temperature: 0.7, exaggeration: 0.25, cfg_weight: 0.5, seed: 1337}
 audio_output:
   format: wav
   sample_rate: 24000

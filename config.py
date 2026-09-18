@@ -80,6 +80,11 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "speed_factor": 1.0,  # Controls the speed of the generated speech.
         "language": "en",  # Default language for TTS.
     },
+    "presets": {  # Named generation presets, selectable via the OpenAI `model` field.
+        # e.g. {"moneypenny": {"temperature": 0.8, "exaggeration": 0.4,
+        #                       "cfg_weight": 0.4, "seed": 670}}
+        # Any key omitted in a preset falls back to generation_defaults.
+    },
     "audio_output": {  # Settings related to the format of generated audio.
         "format": "wav",  # Output audio format (e.g., 'wav', 'mp3').
         "sample_rate": 24000,  # Sample rate of the output audio in Hz.
