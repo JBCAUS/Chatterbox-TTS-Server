@@ -1391,6 +1391,25 @@ async def openai_voices_endpoint(model: str = ""):
             status_code=500, detail="Failed to retrieve predefined voices list."
         )
 
+def _resolve_generation_params(model_name: str, explicit_seed: Optional[int] = None):
+    """Resolve (temperature, exaggeration, cfg_weight, seed) for an OpenAI request.
+
+    If ``model_name`` names an entry in the top-level ``presets`` config section,
+    that preset's values are used; any key the preset omits falls back to the
+    global ``generation_defaults``. Otherwise all four come from the globals.
+    ``explicit_seed`` (the request's ``seed``) always wins over the preset/global
+    seed when provided.
+    """
+    preset = (config_manager.get("presets") or {}).get(model_name) or {}
+    if preset:
+        logger.info(f"OpenAI speech: applying generation preset '{model_name}'")
+    temperature = preset.get("temperature", get_gen_default_temperature())
+    exaggeration = preset.get("exaggeration", get_gen_default_exaggeration())
+    cfg_weight = preset.get("cfg_weight", get_gen_default_cfg_weight())
+    seed_default = preset.get("seed", get_gen_default_seed())
+    seed = explicit_seed if explicit_seed is not None else seed_default
+    return temperature, exaggeration, cfg_weight, seed
+
 @app.post("/v1/audio/speech", tags=["OpenAI Compatible"])
 async def openai_speech_endpoint(request: OpenAISpeechRequest):
     # Determine the audio prompt path based on the voice parameter
@@ -1419,8 +1438,8 @@ async def openai_speech_endpoint(request: OpenAISpeechRequest):
         )
 
     try:
-        seed_to_use = (
-            request.seed if request.seed is not None else get_gen_default_seed()
+        temperature_val, exaggeration_val, cfg_weight_val, seed_to_use = (
+            _resolve_generation_params(request.model, explicit_seed=request.seed)
         )
 
         # Split long text into chunks for better quality (same as /tts endpoint)
@@ -1444,9 +1463,9 @@ async def openai_speech_endpoint(request: OpenAISpeechRequest):
             audio_tensor, sr = engine.synthesize(
                 text=chunk_text,
                 audio_prompt_path=str(audio_prompt_path),
-                temperature=get_gen_default_temperature(),
-                exaggeration=get_gen_default_exaggeration(),
-                cfg_weight=get_gen_default_cfg_weight(),
+                temperature=temperature_val,
+                exaggeration=exaggeration_val,
+                cfg_weight=cfg_weight_val,
                 seed=chunk_seed,
                 language=request.language or get_gen_default_language(),
             )
